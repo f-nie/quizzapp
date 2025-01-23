@@ -19,7 +19,7 @@ export class DbConnector {
                 logWithTime('Connected to the quizzapp database.');
             }
         });
-        this.createTable();
+        this.createTables();
     }
 
     public closeDbConnection() {
@@ -33,7 +33,7 @@ export class DbConnector {
         });
     }
 
-    private createTable() {
+    private createTables() {
         this.db.serialize(() => {
             this.db.run(`CREATE TABLE IF NOT EXISTS questions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,6 +42,10 @@ export class DbConnector {
                 solution TEXT NOT NULL,
                 closestAnswer TEXT NOT NULL,
                 winner TEXT NOT NULL
+            )`);
+            this.db.run(`CREATE TABLE IF NOT EXISTS config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             )`);
         });
     }
@@ -80,6 +84,28 @@ export class DbConnector {
                 ORDER BY rank
             `;
             this.db.all(query, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    }
+
+    public setConfig(key: string, value: string) {
+        this.db.serialize(() => {
+            this.db.run(`INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)`, [key, value], (err) => {
+                if (err) {
+                    errWithTime(err.message);
+                }
+            });
+        });
+    }
+
+    public getConfig(): Promise<{ key: string, value: string }[]> {
+        return new Promise((resolve, reject) => {
+            this.db.all(`SELECT * FROM config`, (err, rows: { key: string; value: string }[]) => {
                 if (err) {
                     reject(err);
                 } else {

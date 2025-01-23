@@ -148,6 +148,7 @@
         <input type="text" id="answer" step="any" placeholder="Enter answer"
             oninput="validateNumberInput(event); checkInputs()">
         <div class="button-container">
+            <button id="btnAIQuestion" onclick="onAIQuestionClicked()">AI Question</button>
             <button id="btnNewQuestion" onclick="onNewQuestionClicked()" disabled>Set Question</button>
             <button id="btnCloseQuestion" onclick="onCloseQuestionClicked()" disabled>Close Question</button>
             <button id="btnRevealResult" onclick="onRevealResultClicked()" disabled>Reveal Result</button>
@@ -199,6 +200,30 @@
             setButtonDisabled("btnCloseQuestion", false);
             setButtonDisabled("btnRevealResult", true);
             showMessageToast('Question set');
+        }
+
+        async function onAIQuestionClicked() {
+            setButtonDisabled("btnAIQuestion", true);
+            document.body.style.cursor = 'wait';
+
+            try {
+                const response = await fetch('/getAIQuestion');
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('question').value = result.question;
+                    document.getElementById('answer').value = result.answer;
+                } else {
+                    showMessageToast('Error loading question.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessageToast('Error loading question.');
+            } finally {
+                setButtonDisabled("btnAIQuestion", false);
+                setButtonDisabled("btnNewQuestion", false);
+                setButtonDisabled("btnClear", false);
+                document.body.style.cursor = 'default';
+            }
         }
 
         async function onCloseQuestionClicked() {

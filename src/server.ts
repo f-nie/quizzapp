@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import path from 'path';
 import { Server } from "socket.io";
 import { DbConnector } from './dbConnector';
+import { GeminiConnector } from './geminiConnector';
 import { errWithTime, logWithTime } from './util';
 
 export class QuizzServer {
@@ -16,6 +17,7 @@ export class QuizzServer {
     private httpServer: ReturnType<typeof createServer>;
     private socketServer: Server;
     private dbConnector: DbConnector;
+    private geminiConnector: GeminiConnector;;
 
     // app variables
     private answers = new Map<string, number>();                // key: name, value: answer
@@ -26,8 +28,9 @@ export class QuizzServer {
     private hostSubscriberId: string = "";
 
 
-    constructor(dbConnector: DbConnector) {
+    constructor(dbConnector: DbConnector, geminiConnector: GeminiConnector) {
         this.dbConnector = dbConnector;
+        this.geminiConnector = geminiConnector;
         this.app = express();
         this.httpServer = createServer(this.app);
         this.socketServer = new Server(this.httpServer);
@@ -98,6 +101,28 @@ export class QuizzServer {
             this.clearQuestion();
             this.socketServer.emit('newQuestion', this.question);
             res.send('Question cleared');
+        });
+
+        this.app.get('/getAIQuestion', (req, res) => {
+            this.geminiConnector.generateQuestion().then(result => {
+                res.json(result);
+            })
+        });
+
+        this.app.get('/isAIReady', (req, res) => {
+            this.geminiConnector.IsUp() ? res.send('AI is ready') : res.status(500).send('AI is not ready');
+        });
+
+        this.app.post('/setConfig', (req, res) => {
+            const { key, value } = req.body;
+            this.dbConnector.setConfig(key, value);
+            res.send('Configuration updated');
+        });
+
+        this.app.get('/getConfig', (req, res) => {
+            this.dbConnector.getConfig().then(result => {
+                res.json(result);
+            })
         });
 
         // player services
