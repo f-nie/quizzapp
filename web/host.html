@@ -353,11 +353,7 @@
         async function isAIServiceReady() {
             try {
                 const response = await fetch('/isAIReady');
-                if (response.ok) {
-                    setButtonDisabled("btnAIQuestion", false);
-                } else {
-                    setButtonDisabled("btnAIQuestion", true);
-                }
+                setButtonDisabled("btnAIQuestion", !response.ok);
             } catch (error) {
                 console.error('Error:', error);
             }
