@@ -8,42 +8,44 @@ export type AIQuestion = {
     answer: number;
 }
 
+export type AIQuestionResult = AIQuestion | { error: Error };
+
 export class GeminiConnector {
 
+    private dbConnector: DbConnector;
     private apiKey: string = "";
-    private prompt: string = "";
 
     public constructor(dbConnector: DbConnector) {
+        this.dbConnector = dbConnector;
         this.apiKey = process.env.GOOGLE_API_KEY || "";
         if (!this.apiKey) {
             errWithTime("Missing GOOGLE_API_KEY in the environment variables");
         }
-        dbConnector.getConfig().then(config => {
-            this.prompt = config.find(c => c.key === constants.config.geminiPromptConfigKey)?.value || "";
-            if (!this.prompt) {
-                errWithTime("Missing AI prompt in the configuration");
-            }
-        });
     }
 
-    public async generateQuestion(): Promise<AIQuestion> {
+    public async generateQuestion(): Promise<AIQuestionResult> {
         if (!this.IsUp()) {
-            return { question: "Gemini AI is not available", answer: 0 };
+            return { error: new Error("Gemini AI is not available: ")};
         }
 
+        const prompt = await this.loadPrompt();
         const genAI = new GoogleGenerativeAI(this.apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const result = await model.generateContent(this.prompt);
-
-        return this.parseResponse(result.response.text());
+        try {
+            const result = await model.generateContent(prompt);
+            return this.parseResponse(result.response.text());
+        } catch (error) {
+            errWithTime((error as Error).message);
+            return { error: new Error("Failed to generate question: " + (error as Error).message) };
+        }
     }
 
-    public IsUp(): boolean {
-        return this.apiKey !== "" && this.prompt !== "";
+    public async IsUp(): Promise<boolean> {
+        return this.apiKey !== "" && await this.loadPrompt() !== "";
     }
 
-    private parseResponse(response: string): AIQuestion {
+    private parseResponse(response: string): AIQuestionResult {
         const trimmedResposne = this.removeFirstAndLastLine(response);
 
         let json;
@@ -54,8 +56,7 @@ export class GeminiConnector {
                 answer: json.answer
             };
         } catch (error) {
-            errWithTime("Failed to parse JSON response: " + error);
-            return { question: "Failed to parse Gemini response", answer: 0 };
+            throw new Error("Failed to parse JSON response: " + (error as Error).message);
         }
     }
 
@@ -65,5 +66,15 @@ export class GeminiConnector {
             return '';
         }
         return lines.slice(1, -2).join('\n');
+    }
+
+    private async loadPrompt(): Promise<string> {
+        const config = await this.dbConnector.getConfig();
+
+        const prompt = config.find(c => c.key === constants.config.geminiPromptConfigKey)?.value || "";
+        if (!prompt) {
+            errWithTime("Missing AI prompt in the configuration");
+        }
+        return prompt;
     }
 }

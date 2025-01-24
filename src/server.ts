@@ -72,6 +72,10 @@ export class QuizzServer {
             res.sendFile(path.join(__dirname, '..', 'web/images', 'icon.png'));
         });
 
+        this.app.get('/settings.png', (req, res) => {
+            res.sendFile(path.join(__dirname, '..', 'web/images', 'settings.png'));
+        });
+
         // host services
 
         this.app.post('/newQuestion', (req, res) => {
@@ -105,12 +109,22 @@ export class QuizzServer {
 
         this.app.get('/getAIQuestion', (req, res) => {
             this.geminiConnector.generateQuestion().then(result => {
-                res.json(result);
+                if ('error' in result) {
+                    res.status(500).send(result.error.message);
+                } else {
+                    res.json(result);
+                }
+
             })
         });
 
         this.app.get('/isAIReady', (req, res) => {
-            this.geminiConnector.IsUp() ? res.send('AI is ready') : res.status(500).send('AI is not ready');
+            this.geminiConnector.IsUp().then(isUp => {
+                isUp ? res.send('AI is ready') : res.status(500).send('AI is not ready');
+            }).catch(error => {
+                res.status(500).send('Error checking AI status');
+                errWithTime(error.message);
+            });
         });
 
         this.app.post('/setConfig', (req, res) => {
@@ -122,7 +136,10 @@ export class QuizzServer {
         this.app.get('/getConfig', (req, res) => {
             this.dbConnector.getConfig().then(result => {
                 res.json(result);
-            })
+            }).catch(error => {
+                res.status(500).send(error.message);
+                errWithTime(error.message);
+            });
         });
 
         // player services
