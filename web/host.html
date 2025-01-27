@@ -317,6 +317,10 @@
             const response = await fetch('/closeQuestion');
             if (response.ok) {
                 showMessageToast('Question closed');
+                const answers = await response.json();
+                if (answers.length) {
+                    updateResultsTable(answers);
+                }
             } else {
                 console.error('Error closing question');
             }

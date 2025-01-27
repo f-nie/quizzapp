@@ -89,7 +89,7 @@ export class QuizzServer {
         this.app.get('/closeQuestion', (req, res) => {
             this.isClosed = true;
             this.socketServer.emit('isClosed', true);
-            res.json('Question closed');
+            res.json(this.sortedAnswers);
         });
 
         this.app.get('/revealResult', (req, res) => {
