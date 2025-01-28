@@ -62,7 +62,13 @@ export class DbConnector {
 
     public getQuestions() {
         return new Promise((resolve, reject) => {
-            this.db.all(`SELECT * FROM questions ORDER BY date DESC`, (err, rows) => {
+            const query = `
+                SELECT *,
+                ROUND(MAX(0, (1 - ABS((CAST(closestAnswer AS REAL) - CAST(solution AS REAL)) / CAST(solution AS REAL))) * 100), 1) AS percentage
+                FROM questions
+                ORDER BY date DESC
+            `;
+            this.db.all(query, (err, rows) => {
                 if (err) {
                     reject(err);
                 } else {

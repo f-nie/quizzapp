@@ -53,7 +53,7 @@
             text-align: right;
         }
 
-        div {
+        .container-div {
             margin: 20px;
             padding: 20px;
             background-color: white;
@@ -65,6 +65,29 @@
         tr:hover {
             background-color: #f5f5f5;
         }
+
+        .percentage {
+            display: flex;
+            min-width: 150px;
+        }
+
+        .percentage-text {
+            width: 70px;
+        }
+
+        .percentage-bar-container {
+            width: calc(100% - 70px);
+            height: 7px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .percentage-bar {
+            background-color: #4CAF50;
+            height: 7px;
+        }
+
     </style>
 </head>
 
@@ -74,7 +97,7 @@
         Gravity Quiz App Winner Statistics
     </h1>
 
-    <div id="statistics">
+    <div id="statistics" class="container-div">
         <h2>Winner Ranking</h2>
         <table id="statisticsTable">
             <thead>
@@ -89,7 +112,7 @@
         </table>
     </div>
 
-    <div id="history">
+    <div id="history" class="container-div">
         <h2>Question History</h2>
         <table id="historyTable">
             <thead>
@@ -98,6 +121,7 @@
                     <th>Question</th>
                     <th>Solution</th>
                     <th>Closest Answer</th>
+                    <th>How close?</th>
                     <th>Winner</th>
                 </tr>
             </thead>
@@ -122,6 +146,14 @@
                             <td>${item.question}</td>
                             <td class="right-align">${item.solution}</td>
                             <td class="right-align">${item.closestAnswer}</td>
+                            <td class="right-align">
+                                <div class="percentage">
+                                    <div class="percentage-bar-container">
+                                        <div class="percentage-bar" style="width: ${item.percentage}%;"></div>
+                                    </div>
+                                    <div class="percentage-text">${item.percentage.toFixed(1)} %</div>
+                                </div>
+                            </td>
                             <td>${item.winner}</td>
                         `;
                         tableBody.appendChild(row);

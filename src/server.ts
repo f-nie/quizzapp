@@ -7,6 +7,14 @@ import { DbConnector } from './dbConnector';
 import { GeminiConnector } from './geminiConnector';
 import { errWithTime, logWithTime } from './util';
 
+type Answer = {
+    rank: number;
+    name: string;
+    answer: number;
+    deviation: number;
+    percentage: number;
+    time: number;
+}
 export class QuizzServer {
 
     // constants
@@ -20,10 +28,11 @@ export class QuizzServer {
     private geminiConnector: GeminiConnector;;
 
     // app variables
-    private answers = new Map<string, number>();                // key: name, value: answer
-    private sortedAnswers: [string, number, number][] = [];     // [name, answer, distance]
+    private answers = new Map<string, number[]>();    // key: name, value: [answer, timestamp]
+    private sortedAnswers: Answer[] = [];
     private question: string = "";
     private solution: number = 0;
+    private questionTimestamp: number = 0;
     private isClosed: boolean = false;
     private hostSubscriberId: string = "";
 
@@ -162,7 +171,7 @@ export class QuizzServer {
                 res.status(400).send('Invalid answer');
                 return;
             }
-            this.answers.set(name, parsedAnswer);
+            this.answers.set(name, [parsedAnswer, Date.now()]);
             this.calculateRanking();
             this.socketServer.to(this.hostSubscriberId).emit('newAnswer', this.sortedAnswers);
             res.send('Answer added');
@@ -210,6 +219,7 @@ export class QuizzServer {
     private clearQuestion() {
         this.question = "";
         this.solution = 0;
+        this.questionTimestamp = 0;
         this.isClosed = false;
         this.sortedAnswers = [];
         this.answers.clear();
@@ -219,12 +229,27 @@ export class QuizzServer {
         this.clearQuestion();
         this.question = question;
         this.solution = answer;
+        this.questionTimestamp = Date.now();
     }
 
     private calculateRanking() {
-        this.sortedAnswers = Array.from(this.answers.entries()).map(([name, value]): [string, number, number] => {
-            return [name, value, parseFloat(Math.abs(value - this.solution).toFixed(2))];
-        }).sort((a, b) => a[2] - b[2]);
+        this.sortedAnswers = Array.from(this.answers.entries()).map(([name, value]): Answer => {
+            const deviation = parseFloat(Math.abs(value[0] - this.solution).toFixed(2));
+            const percentage = Math.max(0, parseFloat(((1 - Math.abs((value[0] - this.solution) / this.solution)) * 100).toFixed(1)));
+            const time = (value[1] - this.questionTimestamp) / 1000;
+            return {
+            rank: 0,
+            name: name,
+            answer: value[0],
+            deviation: deviation,
+            percentage: percentage,
+            time: time
+            };
+        }).sort((a, b) => a.deviation === b.deviation ? a.time - b.time : a.deviation - b.deviation);
+
+        this.sortedAnswers.forEach((answer, index) => {
+            answer.rank = index + 1;
+        });
     }
 
     private storeWinner() {
@@ -232,8 +257,9 @@ export class QuizzServer {
         if (this.sortedAnswers.length === 0) {
             return;
         }
-        const winner = this.sortedAnswers[0][0];
-        this.dbConnector.insertQuestion(new Date().toISOString(), this.question, this.solution.toString(), this.sortedAnswers[0][1].toString(), winner);
+        const winner = this.sortedAnswers[0].name;
+        const closestAnswer = this.sortedAnswers[0].answer;
+        this.dbConnector.insertQuestion(new Date().toISOString(), this.question, this.solution.toString(), closestAnswer.toString(), winner);
     }
 
     private getWinnerRanking() {
