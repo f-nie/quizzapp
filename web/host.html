@@ -291,21 +291,48 @@
             table.innerHTML = '';
             results.forEach(entry => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${entry.rank}</td>
-                    <td>${entry.name}</td>
-                    <td class="right-align">${entry.answer}</td>
-                    <td class="right-align">${entry.deviation}</td>
-                    <td class="right-align">
-                        <div class="percentage">
-                            <div class="percentage-bar-container">
-                                <div class="percentage-bar" style="width: ${entry.percentage}%;"></div>
-                            </div>
-                            <div class="percentage-text">${entry.percentage.toFixed(1)} %</div>
-                        </div>
-                    </td>
-                    <td class="right-align">${entry.time.toFixed(1)} s</td>
-                `;
+                
+                const rankCell = document.createElement('td');
+                rankCell.textContent = entry.rank;
+                row.appendChild(rankCell);
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = entry.name;
+                row.appendChild(nameCell);
+                
+                const answerCell = document.createElement('td');
+                answerCell.className = 'right-align';
+                answerCell.textContent = entry.answer;
+                row.appendChild(answerCell);
+                
+                const deviationCell = document.createElement('td');
+                deviationCell.className = 'right-align';
+                deviationCell.textContent = entry.deviation;
+                row.appendChild(deviationCell);
+                
+                const percentageCell = document.createElement('td');
+                percentageCell.className = 'right-align';
+                const percentageDiv = document.createElement('div');
+                percentageDiv.className = 'percentage';
+                const barContainer = document.createElement('div');
+                barContainer.className = 'percentage-bar-container';
+                const bar = document.createElement('div');
+                bar.className = 'percentage-bar';
+                bar.style.width = entry.percentage + '%';
+                barContainer.appendChild(bar);
+                const percentageText = document.createElement('div');
+                percentageText.className = 'percentage-text';
+                percentageText.textContent = entry.percentage.toFixed(1) + ' %';
+                percentageDiv.appendChild(barContainer);
+                percentageDiv.appendChild(percentageText);
+                percentageCell.appendChild(percentageDiv);
+                row.appendChild(percentageCell);
+                
+                const timeCell = document.createElement('td');
+                timeCell.className = 'right-align';
+                timeCell.textContent = entry.time.toFixed(1) + ' s';
+                row.appendChild(timeCell);
+                
                 table.appendChild(row);
             });
             showResults();
