@@ -146,6 +146,15 @@ export class QuizzServer {
             res.send('Question cleared');
         });
 
+        this.app.get('/getHostState', this.basicAuth.bind(this), (req, res) => {
+            res.json({
+                question: this.question,
+                solution: this.solution,
+                isClosed: this.isClosed,
+                answers: this.sortedAnswers
+            });
+        });
+
         // player services
 
         this.app.get('/getQuestion', (req, res) => {
