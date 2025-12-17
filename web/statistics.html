@@ -190,7 +190,7 @@
         <table id="historyTable">
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th>#</th>
                     <th>Question</th>
                     <th>Solution</th>
                     <th>Closest Answer</th>
@@ -214,12 +214,11 @@
                 .then(data => {
                     allQuestionsData = data;
                     const tableBody = document.querySelector('#historyTable tbody');
-                    data.forEach(item => {
+                    data.forEach((item, index) => {
                         const row = document.createElement('tr');
-                        const date = new Date(item.date);
-                        const formattedDate = `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+                        const questionNumber = data.length - index;
                         row.innerHTML = `
-                            <td>${formattedDate}</td>
+                            <td>${questionNumber}</td>
                             <td>${item.question}</td>
                             <td class="right-align">${item.solution}</td>
                             <td class="right-align">${item.closestAnswer}</td>
@@ -299,39 +298,16 @@
                 '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080'
             ];
 
-            // Get the year from the data (assume all data is from one year)
-            const year = sortedData.length > 0 ? new Date(sortedData[0].date).getFullYear() : new Date().getFullYear();
-
-            // Create month names for the full year
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-            // Map each data point to a fractional month index (0.0 to 11.99)
-            const dataPointsWithMonthIndex = sortedData.map(item => {
-                const date = new Date(item.date);
-                const month = date.getMonth();
-                const day = date.getDate();
-                const daysInMonth = new Date(date.getFullYear(), month + 1, 0).getDate();
-                const fractionalMonth = month + (day - 1) / daysInMonth;
-                return {
-                    ...item,
-                    monthIndex: fractionalMonth
-                };
-            });
-
-            // Create cumulative data for each winner with x positions
+            // Create cumulative data for each winner
             const datasets = winners.map((winner, index) => {
-                const dataPoints = [];
+                const winCounts = [];
                 let cumulativeWins = 0;
 
-                dataPointsWithMonthIndex.forEach(item => {
+                sortedData.forEach(item => {
                     if (item.winner === winner) {
                         cumulativeWins++;
                     }
-                    dataPoints.push({
-                        x: item.monthIndex,
-                        y: cumulativeWins
-                    });
+                    winCounts.push(cumulativeWins);
                 });
 
                 // Use distinct colors from the predefined palette
@@ -339,19 +315,18 @@
 
                 return {
                     label: winner,
-                    data: dataPoints,
+                    data: winCounts,
                     borderColor: color,
                     backgroundColor: color,
                     tension: 0.1,
                     fill: false,
                     pointRadius: 0,
-                    pointHoverRadius: 0,
-                    spanGaps: false
+                    pointHoverRadius: 0
                 };
             });
 
-            // Create labels for all 12 months
-            const labels = monthNames;
+            // Create simple numeric labels for x-axis
+            const labels = sortedData.map((_, index) => index + 1);
 
             const ctx = document.getElementById('winnerChart').getContext('2d');
 
@@ -443,26 +418,17 @@
                             }
                         },
                         x: {
-                            type: 'linear',
-                            min: 0,
-                            max: 12,
                             title: {
                                 display: false
                             },
                             ticks: {
                                 maxRotation: 45,
                                 minRotation: 45,
-                                stepSize: 1,
-                                callback: function(value) {
-                                    return monthNames[Math.round(value)] || '';
-                                }
+                                autoSkip: true,
+                                maxTicksLimit: 12
                             },
                             grid: {
-                                display: true,
-                                drawOnChartArea: true,
-                                color: (context) => {
-                                    return Number.isInteger(context.tick.value) ? 'rgba(0, 0, 0, 0.1)' : 'transparent';
-                                }
+                                display: true
                             }
                         }
                     }
