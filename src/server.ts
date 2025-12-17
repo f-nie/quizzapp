@@ -52,6 +52,34 @@ export class QuizzServer {
         });
     }
 
+    private basicAuth(req: express.Request, res: express.Response, next: express.NextFunction): void {
+        const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Basic ')) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Host Access"');
+            res.status(401).send('Authentication required');
+            return;
+        }
+        
+        try {
+            const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString('utf-8');
+            const [username, password] = credentials.split(':');
+            
+            const expectedUser = process.env.HOST_USERNAME || 'admin';
+            const expectedPass = process.env.HOST_PASSWORD || 'admin';
+            
+            if (username === expectedUser && password === expectedPass) {
+                next();
+            } else {
+                res.setHeader('WWW-Authenticate', 'Basic realm="Host Access"');
+                res.status(401).send('Invalid credentials');
+            }
+        } catch (error) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="Host Access"');
+            res.status(401).send('Invalid credentials');
+        }
+    }
+
     public start() {
         this.app.use(express.json());
         this.app.use(express.static(path.join(__dirname, '..', 'web')));
@@ -66,7 +94,7 @@ export class QuizzServer {
             res.sendFile(path.join(__dirname, '..', 'web', 'player.html'));
         });
 
-        this.app.get('/host', (req, res) => {
+        this.app.get('/host', this.basicAuth.bind(this), (req, res) => {
             res.sendFile(path.join(__dirname, '..', 'web', 'host.html'));
         });
 
@@ -80,7 +108,7 @@ export class QuizzServer {
 
         // host services
 
-        this.app.post('/newQuestion', (req, res) => {
+        this.app.post('/newQuestion', this.basicAuth.bind(this), (req, res) => {
             this.setNewQuestion(req.body.question, req.body.answer);
             this.isClosed = false;
             this.socketServer.emit('isClosed', false);
@@ -88,13 +116,13 @@ export class QuizzServer {
             res.send('New question set');
         });
 
-        this.app.get('/closeQuestion', (req, res) => {
+        this.app.get('/closeQuestion', this.basicAuth.bind(this), (req, res) => {
             this.isClosed = true;
             this.socketServer.emit('isClosed', true);
             res.json(this.sortedAnswers);
         });
 
-        this.app.get('/getAnswers', (req, res) => {         // service for answer polling is implemented as a redunandancy to the unreliable socket.io connection
+        this.app.get('/getAnswers', this.basicAuth.bind(this), (req, res) => {         // service for answer polling is implemented as a redunandancy to the unreliable socket.io connection
             const hostId = req.query.hostId as string;
             if (hostId !== this.hostSubscriberId) {
                 res.status(403).send('Forbidden');
@@ -103,7 +131,7 @@ export class QuizzServer {
             res.json(this.sortedAnswers);
         });
 
-        this.app.get('/revealResult', (req, res) => {
+        this.app.get('/revealResult', this.basicAuth.bind(this), (req, res) => {
             this.socketServer.emit('results', {
                 solution: this.solution,
                 ranking: this.sortedAnswers
@@ -112,7 +140,7 @@ export class QuizzServer {
             res.send('Result revealed');
         });
 
-        this.app.get('/clearQuestion', (req, res) => {
+        this.app.get('/clearQuestion', this.basicAuth.bind(this), (req, res) => {
             this.clearQuestion();
             this.socketServer.emit('newQuestion', this.question);
             res.send('Question cleared');
