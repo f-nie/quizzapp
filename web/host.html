@@ -158,11 +158,30 @@
             }
         }
 
+        .delete-btn {
+            background-color: transparent;
+            color: #f44336;
+            border: none;
+            padding: 5px;
+            font-size: 20px;
+            width: auto;
+            min-width: 30px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            color: #da190b;
+            background-color: #ffebee;
+        }
+
         @media (max-width: 700px) {
             #resultsTable th:nth-child(5),
             #resultsTable td:nth-child(5),
             #resultsTable th:nth-child(6),
-            #resultsTable td:nth-child(6) {
+            #resultsTable td:nth-child(6),
+            #resultsTable th:nth-child(7),
+            #resultsTable td:nth-child(7) {
                 display: none;
             }
         }
@@ -198,6 +217,7 @@
                     <th class="right-align">Deviation</th>
                     <th class="right-align">How close?</th>
                     <th class="right-align">Time</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -213,6 +233,7 @@
         });
 
         const subscriberID = Math.random().toString(36).substring(7);
+        let isResultRevealed = false;
 
         async function onNewQuestionClicked() {
             const question = document.getElementById('question').value;
@@ -262,7 +283,9 @@
                 console.error('Error revealing results');
             }
 
+            isResultRevealed = true;
             setButtonDisabled("btnRevealResult", true);
+            updateResultsTable(Array.from(document.querySelectorAll('#resultsTable tbody tr')).length > 0 ? getCurrentResults() : []);
         }
 
         async function onClearClicked() {
@@ -273,6 +296,7 @@
             setButtonDisabled("btnCloseQuestion", true);
             setButtonDisabled("btnRevealResult", true);
             setButtonDisabled("btnClear", true);
+            isResultRevealed = false;
 
             await fetch('/clearQuestion');
         }
@@ -291,6 +315,7 @@
             table.innerHTML = '';
             results.forEach(entry => {
                 const row = document.createElement('tr');
+                const deleteButton = isResultRevealed ? '' : `<button class="delete-btn" onclick="removeAnswer('${entry.name}')" title="Delete answer">✕</button>`;
                 row.innerHTML = `
                     <td>${entry.rank}</td>
                     <td>${entry.name}</td>
@@ -305,6 +330,7 @@
                         </div>
                     </td>
                     <td class="right-align">${entry.time.toFixed(1)} s</td>
+                    <td>${deleteButton}</td>
                 `;
                 table.appendChild(row);
             });
@@ -368,6 +394,42 @@
                 const answers = await response.json();
                 handleAnswers(answers);
             }
+        }
+
+        async function removeAnswer(name) {
+            const response = await fetch('/removeAnswer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, hostId: subscriberID })
+            });
+            if (response.ok) {
+                const answers = await response.json();
+                handleAnswers(answers);
+                showMessageToast(`Answer from ${name} removed`);
+            } else {
+                console.error('Error removing answer');
+            }
+        }
+
+        function getCurrentResults() {
+            const results = [];
+            const rows = document.querySelectorAll('#resultsTable tbody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                    results.push({
+                        rank: parseInt(cells[0].textContent),
+                        name: cells[1].textContent,
+                        answer: parseFloat(cells[2].textContent),
+                        deviation: parseFloat(cells[3].textContent),
+                        percentage: parseFloat(cells[4].querySelector('.percentage-text').textContent),
+                        time: parseFloat(cells[5].textContent)
+                    });
+                }
+            });
+            return results;
         }
 
     </script>

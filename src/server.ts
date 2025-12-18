@@ -144,6 +144,22 @@ export class QuizzServer {
             res.send('Answer added');
         });
 
+        this.app.post('/removeAnswer', (req, res) => {
+            const { name, hostId } = req.body;
+            if (hostId !== this.hostSubscriberId) {
+                res.status(403).send('Forbidden');
+                return;
+            }
+            if (this.answers.has(name)) {
+                this.answers.delete(name);
+                this.calculateRanking();
+                this.socketServer.to(this.hostSubscriberId).emit('newAnswer', this.sortedAnswers);
+                res.json(this.sortedAnswers);
+            } else {
+                res.status(404).send('Answer not found');
+            }
+        });
+
         // statistics services
 
         this.app.get('/getWinnerRanking', (req, res) => {
