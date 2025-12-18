@@ -392,6 +392,17 @@
                 timeCell.textContent = entry.time.toFixed(1) + ' s';
                 row.appendChild(timeCell);
 
+                const deleteCell = document.createElement('td');
+                if (!isResultRevealed) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = '✕';
+                    deleteBtn.title = 'Delete answer';
+                    deleteBtn.onclick = () => removeAnswer(entry.name);
+                    deleteCell.appendChild(deleteBtn);
+                }
+                row.appendChild(deleteCell);
+
                 table.appendChild(row);
             });
             showResults();
