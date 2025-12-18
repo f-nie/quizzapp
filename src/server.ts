@@ -109,7 +109,12 @@ export class QuizzServer {
         // host services
 
         this.app.post('/newQuestion', this.basicAuth.bind(this), (req, res) => {
-            this.setNewQuestion(req.body.question, req.body.answer);
+            const solution = parseFloat(req.body.answer);
+            if (isNaN(solution) || !isFinite(solution)) {
+                res.status(400).send('Invalid solution');
+                return;
+            }
+            this.setNewQuestion(req.body.question, solution);
             this.isClosed = false;
             this.socketServer.emit('isClosed', false);
             this.socketServer.emit('newQuestion', this.question);
@@ -171,7 +176,7 @@ export class QuizzServer {
             }
             const { name, answer } = req.body;
             const parsedAnswer = parseFloat(answer);
-            if (isNaN(parsedAnswer)) {
+            if (isNaN(parsedAnswer) || !isFinite(parsedAnswer)) {
                 res.status(400).send('Invalid answer');
                 return;
             }

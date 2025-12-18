@@ -434,6 +434,8 @@
         function validateNumberInput(event) {
             const input = event.target;
             const value = input.value;
+            // Allow: optional minus, digits, optional decimal point and more digits
+            // This allows: 0, -0, 0.5, -0.5, 123, -123, 123.456, etc.
             const regex = /^-?\d*\.?\d*$/;
 
             if (!regex.test(value)) {

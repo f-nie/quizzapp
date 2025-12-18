@@ -433,17 +433,21 @@
         function validateNumberInput(event) {
             const input = event.target;
             const value = input.value;
+            // Allow: optional minus, digits, optional decimal point and more digits
+            // This allows: 0, -0, 0.5, -0.5, 123, -123, 123.456, etc.
             const regex = /^-?\d*\.?\d*$/;
 
             if (!regex.test(value)) {
                 input.value = value.slice(0, -1);
             }
+            checkInputs();
         }
 
         function checkInputs() {
-            const question = document.getElementById('question').value;
-            const answer = document.getElementById('answer').value;
-            const disabled = !(question && answer);
+            const question = document.getElementById('question').value.trim();
+            const answer = document.getElementById('answer').value.trim();
+            // Check if question has content and answer is a valid number (including 0)
+            const disabled = !question || answer === '' || isNaN(parseFloat(answer));
             const closeBtn = document.getElementById('btnCloseQuestion');
             const revealBtn = document.getElementById('btnRevealResult');
 
