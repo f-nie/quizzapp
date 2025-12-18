@@ -217,21 +217,47 @@
                     data.forEach((item, index) => {
                         const row = document.createElement('tr');
                         const questionNumber = data.length - index;
-                        row.innerHTML = `
-                            <td>${questionNumber}</td>
-                            <td>${item.question}</td>
-                            <td class="right-align">${item.solution}</td>
-                            <td class="right-align">${item.closestAnswer}</td>
-                            <td class="right-align">
-                                <div class="percentage">
-                                    <div class="percentage-bar-container">
-                                        <div class="percentage-bar" style="width: ${item.percentage}%;"></div>
-                                    </div>
-                                    <div class="percentage-text">${item.percentage.toFixed(1)} %</div>
-                                </div>
-                            </td>
-                            <td>${item.winner}</td>
-                        `;
+                        
+                        const numberCell = document.createElement('td');
+                        numberCell.textContent = questionNumber;
+                        row.appendChild(numberCell);
+                        
+                        const questionCell = document.createElement('td');
+                        questionCell.textContent = item.question;
+                        row.appendChild(questionCell);
+                        
+                        const solutionCell = document.createElement('td');
+                        solutionCell.className = 'right-align';
+                        solutionCell.textContent = item.solution;
+                        row.appendChild(solutionCell);
+                        
+                        const closestAnswerCell = document.createElement('td');
+                        closestAnswerCell.className = 'right-align';
+                        closestAnswerCell.textContent = item.closestAnswer;
+                        row.appendChild(closestAnswerCell);
+                        
+                        const percentageCell = document.createElement('td');
+                        percentageCell.className = 'right-align';
+                        const percentageDiv = document.createElement('div');
+                        percentageDiv.className = 'percentage';
+                        const barContainer = document.createElement('div');
+                        barContainer.className = 'percentage-bar-container';
+                        const bar = document.createElement('div');
+                        bar.className = 'percentage-bar';
+                        bar.style.width = item.percentage + '%';
+                        barContainer.appendChild(bar);
+                        const percentageText = document.createElement('div');
+                        percentageText.className = 'percentage-text';
+                        percentageText.textContent = item.percentage.toFixed(1) + ' %';
+                        percentageDiv.appendChild(barContainer);
+                        percentageDiv.appendChild(percentageText);
+                        percentageCell.appendChild(percentageDiv);
+                        row.appendChild(percentageCell);
+                        
+                        const winnerCell = document.createElement('td');
+                        winnerCell.textContent = item.winner;
+                        row.appendChild(winnerCell);
+                        
                         tableBody.appendChild(row);
                     });
                     createWinnerChart(data);

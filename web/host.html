@@ -235,6 +235,41 @@
         const subscriberID = Math.random().toString(36).substring(7);
         let isResultRevealed = false;
 
+        // Load current state on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/getHostState');
+                if (response.ok) {
+                    const state = await response.json();
+                    if (state.question) {
+                        document.getElementById('question').value = state.question;
+                        document.getElementById('answer').value = state.solution;
+                        checkInputs();
+
+                        if (state.isClosed) {
+                            setButtonDisabled('btnNewQuestion', true);
+                            setButtonDisabled('btnCloseQuestion', true);
+                            setButtonDisabled('btnRevealResult', false);
+                            if (state.answers && state.answers.length > 0) {
+                                updateResultsTable(state.answers);
+                            }
+                        } else {
+                            socketIO.emit('subscribe', subscriberID);
+                            setButtonDisabled('btnNewQuestion', true);
+                            setButtonDisabled('btnCloseQuestion', false);
+                            setButtonDisabled('btnRevealResult', true);
+                            if (state.answers && state.answers.length > 0) {
+                                updateResultsTable(state.answers);
+                            }
+                            startPollingAnswers();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading host state:', error);
+            }
+        });
+
         async function onNewQuestionClicked() {
             const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value;
@@ -315,23 +350,48 @@
             table.innerHTML = '';
             results.forEach(entry => {
                 const row = document.createElement('tr');
-                const deleteButton = isResultRevealed ? '' : `<button class="delete-btn" onclick="removeAnswer('${entry.name}')" title="Delete answer">✕</button>`;
-                row.innerHTML = `
-                    <td>${entry.rank}</td>
-                    <td>${entry.name}</td>
-                    <td class="right-align">${entry.answer}</td>
-                    <td class="right-align">${entry.deviation}</td>
-                    <td class="right-align">
-                        <div class="percentage">
-                            <div class="percentage-bar-container">
-                                <div class="percentage-bar" style="width: ${entry.percentage}%;"></div>
-                            </div>
-                            <div class="percentage-text">${entry.percentage.toFixed(1)} %</div>
-                        </div>
-                    </td>
-                    <td class="right-align">${entry.time.toFixed(1)} s</td>
-                    <td>${deleteButton}</td>
-                `;
+
+                const rankCell = document.createElement('td');
+                rankCell.textContent = entry.rank;
+                row.appendChild(rankCell);
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = entry.name;
+                row.appendChild(nameCell);
+
+                const answerCell = document.createElement('td');
+                answerCell.className = 'right-align';
+                answerCell.textContent = entry.answer;
+                row.appendChild(answerCell);
+
+                const deviationCell = document.createElement('td');
+                deviationCell.className = 'right-align';
+                deviationCell.textContent = entry.deviation;
+                row.appendChild(deviationCell);
+
+                const percentageCell = document.createElement('td');
+                percentageCell.className = 'right-align';
+                const percentageDiv = document.createElement('div');
+                percentageDiv.className = 'percentage';
+                const barContainer = document.createElement('div');
+                barContainer.className = 'percentage-bar-container';
+                const bar = document.createElement('div');
+                bar.className = 'percentage-bar';
+                bar.style.width = entry.percentage + '%';
+                barContainer.appendChild(bar);
+                const percentageText = document.createElement('div');
+                percentageText.className = 'percentage-text';
+                percentageText.textContent = entry.percentage.toFixed(1) + ' %';
+                percentageDiv.appendChild(barContainer);
+                percentageDiv.appendChild(percentageText);
+                percentageCell.appendChild(percentageDiv);
+                row.appendChild(percentageCell);
+
+                const timeCell = document.createElement('td');
+                timeCell.className = 'right-align';
+                timeCell.textContent = entry.time.toFixed(1) + ' s';
+                row.appendChild(timeCell);
+
                 table.appendChild(row);
             });
             showResults();
@@ -373,7 +433,16 @@
             const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value;
             const disabled = !(question && answer);
-            setButtonDisabled("btnNewQuestion", disabled);
+            const closeBtn = document.getElementById('btnCloseQuestion');
+            const revealBtn = document.getElementById('btnRevealResult');
+
+            // Only enable 'Set Question' if question and answer exist AND question not already active
+            if (!closeBtn.disabled || !revealBtn.disabled) {
+                // Question is active, don't enable Set Question button
+                setButtonDisabled("btnNewQuestion", true);
+            } else {
+                setButtonDisabled("btnNewQuestion", disabled);
+            }
             setButtonDisabled("btnClear", disabled);
         }
 
