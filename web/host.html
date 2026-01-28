@@ -438,6 +438,7 @@
                 btnNewQuestion.style.display = 'none';
                 btnCloseQuestion.style.display = 'none';
                 btnRevealResult.style.display = 'inline-block';
+                btnRevealResult.disabled = false;
                 btnClear.style.display = 'inline-block';
             } else if (phase === 4) {
                 // Revealed phase
@@ -552,14 +553,21 @@
         }
 
         async function onRevealResultClicked() {
-            const response = await fetch('/revealResult');
-            if (response.ok) {
-                showMessageToast('Results revealed');
-            } else {
-                console.error('Error revealing results');
-            }
+            setButtonDisabled('btnRevealResult', true);
 
-            updatePhase(4); // Revealed phase
+            try {
+                const response = await fetch('/revealResult');
+                if (response.ok) {
+                    showMessageToast('Results revealed');
+                    updatePhase(4); // Revealed phase
+                } else {
+                    console.error('Error revealing results');
+                    setButtonDisabled('btnRevealResult', false);
+                }
+            } catch (error) {
+                console.error('Error revealing results:', error);
+                setButtonDisabled('btnRevealResult', false);
+            }
         }
 
         async function onClearClicked() {

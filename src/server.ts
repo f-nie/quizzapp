@@ -109,6 +109,11 @@ export class QuizzServer {
         });
 
         this.app.get('/revealResult', (req, res) => {
+            if (this.resultsRevealed) {
+                res.status(400).send('Results already stored');
+                return;
+            }
+
             this.resultsRevealed = true;
             this.socketServer.emit('results', {
                 solution: this.solution,
