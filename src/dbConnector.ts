@@ -85,9 +85,9 @@ export class DbConnector {
     public updateWinnerBookToMaggus() {
         return new Promise((resolve, reject) => {
             const query = `
-                UPDATE questions
-                SET winner = 'Maggus'
-                WHERE LOWER(winner) LIKE 'book%'
+              UPDATE questions
+              SET winner = 'Maggus'
+              WHERE LOWER(winner) LIKE 'book%' OR LOWER(winner) LIKE 'magg%'
             `;
             this.db.run(query, function(err) {
                 if (err) {
