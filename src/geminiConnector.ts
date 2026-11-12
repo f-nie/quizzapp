@@ -80,6 +80,7 @@ export class GeminiConnector {
                     errWithTime(`${model} overloaded, retrying in ${retryDelaysMs[attempt] / 1000}s...`);
                     await new Promise(resolve => setTimeout(resolve, retryDelaysMs[attempt]));
                 } else {
+                    errWithTime(`${model} error: ${(error as Error).message}`);
                     return { error: error as Error };
                 }
             }
