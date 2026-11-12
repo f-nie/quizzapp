@@ -43,6 +43,11 @@ export class DbConnector {
                 closestAnswer TEXT NOT NULL,
                 winner TEXT NOT NULL
             )`);
+            this.db.run(`CREATE TABLE IF NOT EXISTS ai_suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date DATETIME NOT NULL,
+                question TEXT NOT NULL
+            )`);
         });
     }
 
@@ -82,8 +87,26 @@ export class DbConnector {
         });
     }
 
-    public updateWinnerBookToMaggus() {
+    public insertAiSuggestion(question: string) {
+        this.db.serialize(() => {
+            this.db.run(
+                `INSERT INTO ai_suggestions (date, question) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM ai_suggestions WHERE question = ?)`,
+                [new Date().toISOString(), question, question],
+                (err) => { if (err) errWithTime(err.message); }
+            );
+        });
+    }
+
+    public getRecentAiSuggestions(limit: number): Promise<string[]> {
         return new Promise((resolve, reject) => {
+            this.db.all(`SELECT question FROM ai_suggestions ORDER BY id DESC LIMIT ?`, [limit], (err, rows: { question: string }[]) => {
+                if (err) reject(err);
+                else resolve(rows.map(r => r.question));
+            });
+        });
+    }
+
+    public updateWinnerBookToMaggus() {        return new Promise((resolve, reject) => {
             const query = `
               UPDATE questions
               SET winner = 'Maggus'

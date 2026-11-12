@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import path from 'path';
 import { Server } from "socket.io";
 import { DbConnector } from './dbConnector';
+import { GeminiConnector } from './geminiConnector';
 import { errWithTime, logWithTime } from './util';
 
 type Answer = {
@@ -24,6 +25,7 @@ export class QuizzServer {
     private httpServer: ReturnType<typeof createServer>;
     private socketServer: Server;
     private dbConnector: DbConnector;
+    private geminiConnector: GeminiConnector;
 
     // app variables
     private answers = new Map<string, number[]>();    // key: name, value: [answer, timestamp]
@@ -36,8 +38,9 @@ export class QuizzServer {
     private hostSubscriberId: string = "";
 
 
-    constructor(dbConnector: DbConnector) {
+    constructor(dbConnector: DbConnector, geminiConnector: GeminiConnector) {
         this.dbConnector = dbConnector;
+        this.geminiConnector = geminiConnector;
         this.app = express();
         this.httpServer = createServer(this.app);
         this.socketServer = new Server(this.httpServer);
@@ -127,6 +130,25 @@ export class QuizzServer {
             this.clearQuestion();
             this.socketServer.emit('newQuestion', this.question);
             res.send('Question cleared');
+        });
+
+        this.app.get('/isAIReady', (req, res) => {
+            this.geminiConnector.isAvailable()
+                ? res.send('AI is ready')
+                : res.status(503).send('AI is not available');
+        });
+
+        this.app.get('/getAIQuestion', (req, res) => {
+            this.geminiConnector.generateQuestion().then(result => {
+                if ('error' in result) {
+                    res.status(500).send(result.error.message);
+                } else {
+                    res.json(result);
+                }
+            }).catch(error => {
+                res.status(500).send((error as Error).message);
+                errWithTime((error as Error).message);
+            });
         });
 
         this.app.get('/getHostState', (req, res) => {

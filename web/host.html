@@ -105,6 +105,29 @@
             text-align: center;
         }
 
+        .toast-error {
+            background-color: #e53935;
+        }
+
+        @keyframes skeleton-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        input.skeleton {
+            background: linear-gradient(90deg, #e8e8e8 25%, #d4d4d4 50%, #e8e8e8 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.4s ease-in-out infinite;
+            color: transparent;
+            pointer-events: none;
+            border-color: #e0e0e0;
+        }
+
+        #btnAIQuestion {
+            width: 40px;
+            padding: 10px;
+        }
+
         .button-container {
             display: flex;
             flex-wrap: wrap;
@@ -351,6 +374,11 @@
 
         <div class="action-buttons" id="actionButtons">
             <div class="action-buttons-left">
+                <button id="btnAIQuestion" type="button" onclick="onAIQuestionClicked()" title="Generate question" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd" viewBox="0 0 512 480.24" width="20" height="19" fill="currentColor">
+                        <path fill-rule="nonzero" d="M512 220.6c-163.88 61.72-149.02 38.94-206.92 208.29-57.91-169.35-43.06-146.57-206.92-208.26 163.86-61.72 149.01-38.95 206.92-208.3C362.98 181.68 348.12 158.91 512 220.6zM193.38 382.9c-76.59 28.86-69.65 18.21-96.71 97.34C69.63 401.11 76.59 411.76 0 382.9c76.59-28.81 69.63-18.15 96.67-97.31 27.06 79.16 20.12 68.5 96.71 97.31zm8.2-316.66c-52.13 19.66-47.41 12.38-65.81 66.28-18.43-53.86-13.69-46.62-65.84-66.28C122.08 46.63 117.34 53.87 135.77 0c18.4 53.87 13.68 46.63 65.81 66.24z"/>
+                    </svg>
+                </button>
                 <button id="btnNewQuestion" type="button" onclick="onSetQuestionClicked()" disabled>Set Question</button>
                 <button id="btnCloseQuestion" type="button" onclick="onCloseQuestionClicked()" style="display: none;">Close Question</button>
                 <button id="btnRevealResult" type="button" onclick="onRevealResultClicked()" style="display: none;">Reveal Result</button>
@@ -410,6 +438,7 @@
             // Update visibility based on phase
             const inputContainer = document.getElementById('inputContainer');
             const questionDisplay = document.getElementById('questionDisplay');
+            const btnAIQuestion = document.getElementById('btnAIQuestion');
             const btnNewQuestion = document.getElementById('btnNewQuestion');
             const btnCloseQuestion = document.getElementById('btnCloseQuestion');
             const btnRevealResult = document.getElementById('btnRevealResult');
@@ -419,6 +448,7 @@
                 // Setup phase
                 inputContainer.classList.remove('hidden');
                 questionDisplay.classList.remove('visible');
+                btnAIQuestion.style.display = 'inline-block';
                 btnNewQuestion.style.display = 'inline-block';
                 btnCloseQuestion.style.display = 'none';
                 btnRevealResult.style.display = 'none';
@@ -427,6 +457,7 @@
                 // Active phase
                 inputContainer.classList.add('hidden');
                 questionDisplay.classList.add('visible');
+                btnAIQuestion.style.display = 'none';
                 btnNewQuestion.style.display = 'none';
                 btnCloseQuestion.style.display = 'inline-block';
                 btnRevealResult.style.display = 'none';
@@ -435,6 +466,7 @@
                 // Closed phase
                 inputContainer.classList.add('hidden');
                 questionDisplay.classList.add('visible');
+                btnAIQuestion.style.display = 'none';
                 btnNewQuestion.style.display = 'none';
                 btnCloseQuestion.style.display = 'none';
                 btnRevealResult.style.display = 'inline-block';
@@ -444,6 +476,7 @@
                 // Revealed phase
                 inputContainer.classList.add('hidden');
                 questionDisplay.classList.add('visible');
+                btnAIQuestion.style.display = 'none';
                 btnNewQuestion.style.display = 'none';
                 btnCloseQuestion.style.display = 'none';
                 btnRevealResult.style.display = 'none';
@@ -503,6 +536,7 @@
         // Load state on page load
         window.addEventListener('DOMContentLoaded', () => {
             loadHostState();
+            checkAIAvailability();
         });
 
         async function onSetQuestionClicked() {
@@ -623,10 +657,10 @@
             document.getElementById(buttonId).style.display = visible ? 'inline-block' : 'none';
         }
 
-        function showMessageToast(message) {
+        function showMessageToast(message, isError = false) {
             const toast = document.createElement('div');
             toast.textContent = message;
-            toast.className = 'toast';
+            toast.className = 'toast' + (isError ? ' toast-error' : '');
             document.body.appendChild(toast);
             const timeOut = setTimeout(() => {
                 toast.remove();
@@ -662,6 +696,44 @@
 
         function onStatisticsClicked() {
             window.open('/statistics', '_blank');
+        }
+
+        async function checkAIAvailability() {
+            try {
+                const response = await fetch('/isAIReady');
+                setButtonDisabled('btnAIQuestion', !response.ok);
+            } catch (error) {
+                setButtonDisabled('btnAIQuestion', true);
+            }
+        }
+
+        async function onAIQuestionClicked() {
+            setButtonDisabled('btnAIQuestion', true);
+            setInputsSkeleton(true);
+
+            try {
+                const response = await fetch('/getAIQuestion');
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById('question').value = result.question;
+                    document.getElementById('answer').value = result.answer;
+                    checkInputs();
+                } else {
+                    const errorText = await response.text();
+                    showMessageToast('AI error: ' + errorText, true);
+                }
+            } catch (error) {
+                showMessageToast('AI connection error', true);
+            } finally {
+                setInputsSkeleton(false);
+                setButtonDisabled('btnAIQuestion', false);
+            }
+        }
+
+        function setInputsSkeleton(active) {
+            document.getElementById('question').classList.toggle('skeleton', active);
+            document.getElementById('answer').classList.toggle('skeleton', active);
+            setButtonDisabled('btnNewQuestion', active);
         }
 
         function handleAnswers(answers) {
