@@ -4,12 +4,14 @@ Gravity Quiz App for number estimation questions. It shows a question to multipl
 
 ## How to run
 ### In a docker container
-- Create docker image:  ```./docker-build.sh```
+- Create docker image:  ```./build.sh```
+	- Optional: set the environment variable QUIZZAPP_IMAGE_REPOSITORY to use a custom tag for the image and automatically push the image to the provided container registry
 - Either:
     - Use ```compose.yaml``` to automatically create and link a Docker volume for persistency and run the container
     - Manually
         - Create volume: ```docker volume create quizzapp_db```
         - Run container: ```docker run -d -p 3000:3000 --name quizzapp-container -v quizzapp_db:/app/db quizzapp```
+
 
 ### Locally
 #### Prerequisites
