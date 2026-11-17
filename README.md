@@ -6,7 +6,7 @@ Gravity Quiz App for number estimation questions. It shows a question to multipl
 ### In a docker container
 - Create docker image:  ```./docker-build.sh```
 - Either:
-    - Use ```docker-compose.yml``` to automatically create and link a Docker volume for persistency and run the container
+    - Use ```compose.yaml``` to automatically create and link a Docker volume for persistency and run the container
     - Manually
         - Create volume: ```docker volume create quizzapp_db```
         - Run container: ```docker run -d -p 3000:3000 --name quizzapp-container -v quizzapp_db:/app/db quizzapp```
@@ -28,8 +28,25 @@ Gravity Quiz App for number estimation questions. It shows a question to multipl
 - Player UI: http://localhost:3000/player
 - Listing of question history: http://localhost:3000/statistics
 
+## AI question generation
+The host UI features a button to generate quiz questions via the Gemini API. To enable it, a valid API key must be provided.
+
+Get an API key at [aistudio.google.com](https://aistudio.google.com).
+
+### Docker deployment
+Create a `.env` file next to `compose.yaml`:
+```
+GEMINI_API_KEY=your-api-key-here
+```
+The key is passed to the container via the `environment` section in `compose.yaml`. Without it, the AI button is disabled.
+
+### Local setup
+Set the environment variable before starting the app:
+```sh
+GEMINI_API_KEY=your-api-key-here ts-node src/start.ts
+```
+
 ## How to manually add an entry to the database
-Use the following script (the date must be in the format "dd.MM.yyyy"):
 
 ```sh
 ts-node src/addWinner.ts <date> <question> <solution> <closest answer> <winner>
